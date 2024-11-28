@@ -1,8 +1,12 @@
 <template>
   <div class="dashboard">
-    <h1 class="dashboard-header">Welcome</h1>
+    <button class="toggle-button" @click="toggleUserList">
+      {{ showUserList ? 'Hide' : 'Show' }} User List
+    </button>
     <div class="dashboard-container">
-      <div class="user-list">
+      <!-- Toggle button -->
+
+      <div v-if="showUserList" class="user-list">
         <h2>Users</h2>
         <div
           v-for="user in users"
@@ -15,7 +19,7 @@
           </p>
         </div>
       </div>
-      <div class="main-content">
+      <div :class="{ 'main-content-expanded': !showUserList }" class="main-content">
         <AssetOverview :assets="assets" />
         <UserDetails v-if="selectedUser" :user="selectedUser" />
       </div>
@@ -24,7 +28,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, computed, onMounted } from 'vue';
 import type { Asset, User } from '../types/types';
 import { useAuthStore } from '../stores/auth';
 import AssetOverview from '../components/AssetOverview.vue';
@@ -37,40 +41,40 @@ export default defineComponent({
     UserDetails,
   },
   setup() {
-    // Initialize the auth store
     const authStore = useAuthStore();
+    const users = ref<User[]>([]);
+    const selectedUser = ref<User | null>(null);
+    const assets = ref<Asset[]>([]);
+    const showUserList = ref(true); // Toggle user list visibility
 
-    // Reactive state variables
-    const users = ref<User[]>([]); // List of all users
-    const selectedUser = ref<User | null>(null); // Currently selected user
-    const assets = ref<Asset[]>([]); // Assets of the selected user
-
-    // Fetch all users from the backend
     const fetchUsers = async () => {
       try {
         const response = await apiClient.get('/users');
-        users.value = response.data; // Populate the users list
+        users.value = response.data.map((user: User) => ({
+          ...user,
+        }));
       } catch (error) {
         console.error('Error fetching users:', error);
       }
     };
 
-    // Fetch details of a selected user, including their assets
     const selectUser = async (id: string) => {
       try {
         const response = await apiClient.get(`/users/${id}`);
-        selectedUser.value = response.data; // Populate the selected user's details
-        assets.value = response.data.assets; // Populate the selected user's assets
+        selectedUser.value = response.data;
+        assets.value = response.data.assets;
       } catch (error) {
         console.error('Error fetching user details:', error);
       }
     };
 
-    // Fetch the users list when the component mounts
+    const toggleUserList = () => {
+      showUserList.value = !showUserList.value;
+    };
+
     onMounted(fetchUsers);
 
-    // Return reactive variables and methods to the template
-    return { authStore, users, selectedUser, selectUser, assets };
+    return { authStore, users, selectedUser, selectUser, assets, showUserList, toggleUserList };
   },
 });
 </script>
@@ -96,15 +100,34 @@ export default defineComponent({
 .dashboard-container {
   display: flex;
   gap: 20px;
+  align-items: flex-start; /* Align user list and main content at the top */
+  transition: all 0.3s ease;
 }
 
-/* Left column for show the  User list */
+/* Button to toggle the user list */
+.toggle-button {
+  margin-bottom: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  color: white;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.toggle-button:hover {
+  background-color: #0056b3;
+}
+
+/* User list styles */
 .user-list {
   flex: 1;
-  background-color: #ffffff; /* White background for the user list */
+  background-color: #ffffff;
   padding: 15px;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease; /* Smooth transition */
 }
 
 .user-list h2 {
@@ -130,13 +153,23 @@ export default defineComponent({
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Right column: Main content show asset overview and user details*/
+.user-preview.non-clickable {
+  background-color: #e9ecef; /* Slightly darker background */
+  cursor: not-allowed;
+}
+
+/* Main content styles */
 .main-content {
   flex: 2;
   background-color: #ffffff;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.main-content-expanded {
+  flex: 3; /* Take more space when user list is hidden */
 }
 
 .main-content > *:not(:last-child) {
