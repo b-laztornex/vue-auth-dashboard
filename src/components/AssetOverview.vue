@@ -1,13 +1,18 @@
 <template>
-  <div class="asset-distribution">
-    <h2 class="chart-title">Asset Distribution</h2>
-    <PieChart :data="chartData" :options="chartOptions" />
+  <div class="asset-overview">
+    <h2>Asset Overview</h2>
+    <button @click="toggleChartVisibility" class="toggle-chart-button">
+      {{ showChart ? 'Hide' : 'Show' }} Asset Distribution
+    </button>
+    <div v-if="showChart" class="chart-container">
+      <PieChart :data="chartData" :options="chartOptions" />
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, computed, ref } from 'vue';
-import PieChart from '@/components/PieChart.vue';
+import PieChart from './PieChart.vue';
 import type { Asset } from '@/types/types';
 import { colorPalette } from '@/constants/colors';
 
@@ -20,80 +25,94 @@ export default defineComponent({
     },
   },
   setup(props) {
-    // Compute the chart data
+    const showChart = ref(true);
+
+    const toggleChartVisibility = () => {
+      showChart.value = !showChart.value;
+    };
+
     const chartData = computed(() => {
       const labels = props.assets.map((asset) => asset.type);
       const data = props.assets.map(
-        (asset) => asset.valuation_history[asset.valuation_history.length - 1].value
+        (asset) => asset.valuation_history[asset.valuation_history.length - 1]?.value || 0
       );
+
       return {
         labels,
         datasets: [
           {
             data,
-            backgroundColor: colorPalette.slice(0, props.assets.length), // Use the color palette
-            hoverBackgroundColor: colorPalette.map((color) => `${color}B3`), // Add transparency on hover
+            backgroundColor: colorPalette.slice(0, props.assets.length),
+            hoverBackgroundColor: colorPalette.slice(0, props.assets.length),
           },
         ],
       };
     });
 
-    // Define chart options
-    const chartOptions = ref({
+    const chartOptions = computed(() => ({
       responsive: true,
       plugins: {
         legend: {
+          display: true,
           position: 'bottom',
           labels: {
-            color: '#333',
             font: {
               size: 14,
               weight: 'bold',
             },
+            color: '#333',
           },
         },
         tooltip: {
-          backgroundColor: '#fff',
-          bodyColor: '#333',
+          enabled: true,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          titleColor: '#000',
+          bodyColor: '#000',
           borderColor: '#ddd',
           borderWidth: 1,
-          bodyFont: {
+          titleFont: {
             size: 14,
+            weight: 'bold',
+          },
+          bodyFont: {
+            size: 12,
           },
         },
       },
-    });
+    }));
 
-    return { chartData, chartOptions };
+    return {
+      showChart,
+      toggleChartVisibility,
+      chartData,
+      chartOptions,
+    };
   },
 });
 </script>
 
 <style scoped>
-.asset-distribution {
-  margin: 20px auto;
-  padding: 20px;
-  max-width: 600px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.chart-title {
-  font-size: 1.8rem;
+.asset-overview {
   text-align: center;
-  color: #007bff;
-  margin-bottom: 20px;
-  transition: color 0.3s ease;
+  margin: 20px 0;
 }
 
-.chart-title:hover {
-  color: #0056b3;
+.toggle-chart-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 15px;
 }
 
-canvas {
-  max-width: 100%;
+.toggle-chart-button:hover {
+  background-color: #0056b3;
+}
+
+.chart-container {
+  max-width: 600px;
   margin: 0 auto;
 }
 </style>
