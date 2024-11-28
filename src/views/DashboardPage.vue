@@ -20,8 +20,9 @@
         </div>
       </div>
       <div :class="{ 'main-content-expanded': !showUserList }" class="main-content">
-        <AssetOverview :assets="assets" />
         <UserDetails v-if="selectedUser" :user="selectedUser" />
+        <hr />
+        <AssetOverview :assets="assets" />
       </div>
     </div>
   </div>
@@ -53,6 +54,10 @@ export default defineComponent({
         users.value = response.data.map((user: User) => ({
           ...user,
         }));
+        if (users.value.length > 0) {
+          const lastUser = users.value[users.value.length - 1];
+          await selectUser(lastUser._id);
+        }
       } catch (error) {
         console.error('Error fetching users:', error);
       }
