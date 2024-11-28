@@ -1,10 +1,24 @@
 <template>
-  <div>
-    <div v-for="asset in user.assets" :key="asset.type" class="asset">
+  <div class="charts-container">
+    <div
+      v-for="asset in user.assets"
+      :key="asset.type"
+      class="asset"
+      @click="toggleFullSize(asset)"
+    >
       <!-- Asset Title -->
       <h3 class="asset-title">{{ asset.type }}</h3>
       <!-- Line Chart -->
       <LineChart :data="formatChartData(asset)" :options="chartOptions" />
+    </div>
+
+    <!-- Full-size Chart Modal -->
+    <div v-if="fullSizeAsset" class="modal-overlay" @click="closeFullSize">
+      <div class="modal-content" @click.stop>
+        <button class="close-button" @click="closeFullSize">&times;</button>
+        <h3 class="modal-title">{{ fullSizeAsset.type }}</h3>
+        <LineChart :data="formatChartData(fullSizeAsset)" :options="chartOptions" />
+      </div>
     </div>
   </div>
 </template>
@@ -24,6 +38,8 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const fullSizeAsset = ref<Asset | null>(null); // Asset to preview in full size
+
     const formatChartData = (asset: Asset) => {
       return {
         labels: asset.valuation_history.map((vh) => vh.date),
@@ -31,12 +47,12 @@ export default defineComponent({
           {
             label: asset.type,
             data: asset.valuation_history.map((vh) => vh.value),
-            borderColor: colorPalette[Math.floor(Math.random() * colorPalette.length)], // Randomized color
-            backgroundColor: 'rgba(0, 0, 0, 0)', // Transparent background
+            borderColor: colorPalette[Math.floor(Math.random() * colorPalette.length)],
+            backgroundColor: 'rgba(0, 0, 0, 0)',
             borderWidth: 2,
             pointRadius: 5,
             pointHoverRadius: 8,
-            tension: 0.4, // Smooth curve
+            tension: 0.4,
           },
         ],
       };
@@ -46,7 +62,7 @@ export default defineComponent({
       responsive: true,
       plugins: {
         legend: {
-          display: false, // Hide legend for cleaner look
+          display: false,
         },
         tooltip: {
           enabled: true,
@@ -80,14 +96,33 @@ export default defineComponent({
       },
     });
 
-    return { formatChartData, chartOptions };
+    const toggleFullSize = (asset: Asset) => {
+      fullSizeAsset.value = asset; // Set the clicked asset as full-size
+    };
+
+    const closeFullSize = () => {
+      fullSizeAsset.value = null; // Reset the full-size asset to close modal
+    };
+
+    return { formatChartData, chartOptions, fullSizeAsset, toggleFullSize, closeFullSize };
   },
 });
 </script>
 
 <style scoped>
+.charts-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Fit 3 charts per row */
+  gap: 20px; /* Space between charts */
+}
+
+.asset-title {
+  background-color: #7cbcff;
+  padding: 2px;
+  border-radius: 10px;
+}
+
 .asset {
-  margin-bottom: 20px;
   padding: 15px;
   background-color: #fff;
   border: 1px solid #ddd;
@@ -96,6 +131,7 @@ export default defineComponent({
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
+  cursor: pointer;
 }
 
 .asset:hover {
@@ -103,19 +139,63 @@ export default defineComponent({
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
 }
 
-.asset-title {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
-  color: #007bff;
-  transition: color 0.2s ease;
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal content */
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 800px;
   text-align: center;
+  position: relative;
 }
 
-.asset-title:hover {
-  color: #0056b3;
+.modal-title {
+  font-size: 1.8rem;
+  color: #007bff;
+  margin-bottom: 15px;
 }
 
-canvas {
-  max-width: 100%;
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.close-button:hover {
+  color: #007bff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .charts-container {
+    grid-template-columns: repeat(2, 1fr); /* 2 charts per row for medium screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .charts-container {
+    grid-template-columns: 1fr; /* 1 chart per row for small screens */
+  }
 }
 </style>
